@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#check for root user; if not prompt pam module and escalate the entire script
+[[ "$EUID" == 0 ]] || exec sudo -s "$0" "$@"
+
+#turn off all network interfaces
+for file in /proc/net/dev/*; do
+        echo "0" > file
+done
+
+declare -i PROCESS=0
+declare -i START_PROCESS_ID=0
+#use ps aux to find the process just before systemd (I was using Ubuntu when writing this script)
+declare -s START_PROCESS="acpid"
+
+START_PROCESS_ID=$(ps -e -o pid,comm | grep "$START_PROCESS" | awk '{print $1}' | sed -e "s/[0-9]+//")
+CMD=$(ps -e -o pid | grep -v PID | sed 's/([^0-9\\n]+)//g')
+
+count=$(ps -e -o pid,comm |  wc -l)
+
+#Kill all process starting at the first systemd call
+while IFS=$'\n' read -r line; do
+        PROCESS=$(echo "$line" | awk '{print $1}')
+        if [ "$PROCESS" -lt "$PROCESS_ID" ]; then
+                continue;
+        elif [ "$PROCESS" -eq "$$" ]; then
+                continue;
+        else
+           /bin/kill -9 "${PROCESS}"
+           continue;
+        fi
+done <<< "${CMD}"
