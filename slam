@@ -4,8 +4,8 @@
 [[ "$EUID" == 0 ]] || exec sudo -s "$0" "$@"
 
 #turn off all network interfaces
-for file in /proc/net/dev/*; do
-        echo "0" > file
+for inet in $(ip -o link show | awk -F': ' '{print $2}'); do
+        ifconfig "$inet" down
 done
 
 declare -i PROCESS=0
